@@ -1,0 +1,7 @@
+numpy
+pandas
+keras
+tensorflow
+pillow
+t4
+comet_ml

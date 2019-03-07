@@ -1,0 +1,7 @@
+.DS_Store
+.vscode/
+X_meta.csv
+images_cropped/
+.ipynb_checkpoints/
+*.h5
+comet_api_key.txt
