@@ -20,9 +20,10 @@ metadata_filepath = 'X_meta.csv'
 # set up experiment logging
 # set COMET_API_KEY in your environment variables
 # or pass it as the first value in the Experiment object
-experiment = Experiment(
-    workspace="ceceshao1", project_name="aleksey-open-fruits"
-)
+# experiment = Experiment(
+#     "...",
+#     workspace="ceceshao1", project_name="aleksey-open-fruits"
+# )
 
 
 # get X and y values for flow_from_directory
@@ -40,30 +41,33 @@ train_datagen = ImageDataGenerator(
     shear_range=0.2,
     zoom_range=0.2,
     horizontal_flip=True,
-    fill_mode='nearest'
+    fill_mode='nearest',
+    validation_split=0.2
 )
 test_datagen = ImageDataGenerator(
-    rescale=1/255
+    rescale=1/255,
 )
 train_generator = train_datagen.flow_from_directory(
     img_dir,
     target_size=(48, 48),
     batch_size=512,
-    class_mode='categorical'
+    class_mode='categorical',
+    subset='training',
 )
-validation_generator = test_datagen.flow_from_directory(
+validation_generator = train_datagen.flow_from_directory(
     img_dir,
     target_size=(48, 48),
     batch_size=512,
-    class_mode='categorical'
+    class_mode='categorical',
+    subset='validation'
 )
 
 
 # load the pretrained model
-import t4
-t4.Package.browse('quilt/open_fruit_models', 's3://quilt-example')['bottleneck_model.h5']\
-    .fetch('bottleneck_model.h5')
-pretrained_model = keras.models.load_model('bottleneck_model.h5')
+# import t4
+# t4.Package.browse('quilt/open_fruit_models', 's3://quilt-example')['bottleneck_model.h5']\
+#     .fetch('bottleneck_model.h5')
+# pretrained_model = keras.models.load_model('bottleneck_model.h5')
 
 
 # define the model
@@ -111,6 +115,8 @@ model.fit_generator(
     train_generator,
     steps_per_epoch=len(train_generator.filenames) // batch_size,
     epochs=20,
+    validation_data=validation_generator,
+    validation_steps=len(train_generator.filenames) // batch_size,
     callbacks=[EarlyStopping(patience=2)]
 )
 
@@ -118,3 +124,5 @@ model.fit_generator(
 # save model artifact
 # model.save('/opt/ml/model/model.h5')
 model.save('model.h5')
+
+# experiment.end()
