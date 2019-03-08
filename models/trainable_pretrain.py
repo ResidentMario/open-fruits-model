@@ -1,7 +1,7 @@
 # get code dependencies
+from comet_ml import Experiment  # must be imported before keras
 import numpy as np
 import pandas as pd
-from comet_ml import Experiment  # must be imported before keras
 import keras
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
@@ -19,26 +19,16 @@ metadata_filepath = 'X_meta.csv'
 
 # set up experiment logging
 # set COMET_API_KEY in your environment variables
-experiment = Experiment(workspace="ceceshao1", project_name="aleksey-open-fruits")
+# or pass it as the first value in the Experiment object
+experiment = Experiment(
+    workspace="ceceshao1", project_name="aleksey-open-fruits"
+)
 
 
-# get X and y values for flow_from_dataframe
+# get X and y values for flow_from_directory
 X_meta = pd.read_csv(metadata_filepath)
 X = X_meta[['CroppedImageURL']].values
 y = X_meta['LabelName'].values
-
-
-# randomly partition data into train and test
-np.random.seed(42)
-idxs = np.arange(len(X))
-np.random.shuffle(idxs)
-split_ratio = 0.8
-n_samples = len(X)
-split_idx = int(split_ratio * n_samples)
-X_train, X_test = X[idxs[:split_idx]], X[idxs[split_idx:]]
-y_train, y_test = y[idxs[:split_idx]], y[idxs[split_idx:]]
-X_train_df = pd.DataFrame().assign(ImagePath=X_train[:, 0], ImageClass=y_train)
-X_test_df = pd.DataFrame().assign(ImagePath=X_test[:, 0], ImageClass=y_test)
 
 
 # define data generators
@@ -55,20 +45,14 @@ train_datagen = ImageDataGenerator(
 test_datagen = ImageDataGenerator(
     rescale=1/255
 )
-train_generator = train_datagen.flow_from_dataframe(
-    X_train_df,
-    directory=img_dir,
-    x_col='ImagePath',
-    y_col='ImageClass',
+train_generator = train_datagen.flow_from_directory(
+    img_dir,
     target_size=(48, 48),
     batch_size=512,
     class_mode='categorical'
 )
-validation_generator = test_datagen.flow_from_dataframe(
-    X_test_df,
-    directory=img_dir,
-    x_col='ImagePath',
-    y_col='ImageClass',
+validation_generator = test_datagen.flow_from_directory(
+    img_dir,
     target_size=(48, 48),
     batch_size=512,
     class_mode='categorical'
@@ -77,7 +61,8 @@ validation_generator = test_datagen.flow_from_dataframe(
 
 # load the pretrained model
 import t4
-t4.browse('quilt/open_fruit_models')['bottleneck_model.h5'].fetch('bottleneck_model.h5')
+t4.Package.browse('quilt/open_fruit_models', 's3://quilt-example')['bottleneck_model.h5']\
+    .fetch('bottleneck_model.h5')
 pretrained_model = keras.models.load_model('bottleneck_model.h5')
 
 
